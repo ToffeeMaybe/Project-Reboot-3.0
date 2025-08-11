@@ -678,7 +678,7 @@ static inline uint64 FindOnDamageServer()
 {
 	if (Fortnite_Version >= 20) // pawn has one too gg
 	{
-		return 0;
+		// return 0;
 	}
 
 	auto Addr = FindFunctionCall(L"OnDamageServer", 
@@ -1596,7 +1596,9 @@ static inline uint64 FindGetNetMode()
 
 	for (int i = 0; i < 400; i++)
 	{
-		if ((*(uint8_t*)(uint8_t*)(BeginningFunction + i) == 0xE8) && (*(uint8_t*)(uint8_t*)(BeginningFunction + i - 1) != 0x8B)) // scuffed but idk how to guarantee its not a register
+		if ((*(uint8_t*)(uint8_t*)(BeginningFunction + i) == 0xE8) 
+			&& (*(uint8_t*)(uint8_t*)(BeginningFunction + i - 1) != 0x8B) // scuffed but idk how to guarantee its not a register
+			&& (*(uint8_t*)(uint8_t*)(BeginningFunction + i - 1) != 0xE7)) // ^^ 6.31
 		{
 			CallToFunc = BeginningFunction + i;
 			break;
@@ -1609,7 +1611,7 @@ static inline uint64 FindGetNetMode()
 		return 0;
 	}
 
-	LOG_INFO(LogDev, "CallToFunc: 0x{:x}", CallToFunc - __int64(GetModuleHandleW(0)));
+	LOG_INFO(LogDev, "GetNetMode Off: 0x{:x}", CallToFunc - __int64(GetModuleHandleW(0)));
 
 	return Memcury::Scanner(CallToFunc).RelativeOffset(1).Get();
 
@@ -2048,6 +2050,36 @@ static inline uint64 FindClearAbility()
 		return Memcury::Scanner::FindPattern("40 53 57 41 56 48 83 EC 20 80 89 ? ? ? ? ? 33").Get();
 	if (Engine_Version == 500)
 		return Memcury::Scanner::FindPattern("48 8B C4 48 89 58 08 48 89 68 10 48 89 70 18 48 89 78 20 41 56 48 83 EC 20 80 89 ? ? ? ? ? 48 8B F2 44 8B 89 ? ? ? ? 33 D2 48 8B").Get();
+
+	return 0;
+}
+
+static inline uint64 SpawnBotRet()
+{
+	auto String = Memcury::Scanner::FindStringRef(L"Unable to create UFortAthenaAIBotCustomizationData object. BotClass = %s", true, 0, false).Get();
+
+	for (int i = 0; i < 1000; i++)
+	{
+		if (*(uint8_t*)(String + i) == 0x48 && *(uint8_t*)(String + i + 1) == 0x8b && *(uint8_t*)(String + i + 2) == 0xd8)
+		{
+			return String + i;
+		}
+	}
+
+	return 0;
+}
+
+static inline uint64 SpawnBot()
+{
+	auto String = Memcury::Scanner::FindStringRef(L"UFortServerBotManagerAthena::SpawnBot invalid spawn location", true, 0, false).Get();
+
+	for (int i = 0; i < 1000; i++)
+	{
+		if (*(uint8_t*)(String - i) == 0x48 && *(uint8_t*)(String - i + 1) == 0x8b && *(uint8_t*)(String - i + 2) == 0xc4)
+		{
+			return String - i;
+		}
+	}
 
 	return 0;
 }
